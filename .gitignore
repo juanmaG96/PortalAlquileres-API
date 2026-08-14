@@ -1,0 +1,50 @@
+## ----------------------------------------------------------------------
+## .gitignore oficial para Backend .NET 10 (Marketplace API)
+## ----------------------------------------------------------------------
+
+# Entornos y Archivos de Configuración Sensibles
+appsettings.Development.json
+appsettings.Production.json
+appsettings.Local.json
+appsettings.Staging.json
+appsettings.*.json
+!appsettings.json
+
+# Archivos de Variables de Entorno
+.env
+.env.*
+!.env.example
+
+# Archivos de Trabajo de Visual Studio e IDEs
+.vs/
+.vscode/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+*.userprefs
+
+# Directorios de Compilación y Salida
+bin/
+obj/
+publish/
+out/
+
+# Paquetes NuGet y Archivos de Caché Local
+*.nupkg
+*.snupkg
+project.lock.json
+project.assets.json
+.nuget/
+
+# Archivos de Base de Datos y Certificados Locales
+*.db
+*.sqlite
+*.sqlite3
+*.pfx
+*.pem
+
+# Archivos Temporales y Logs
+*.log
+*.tmp
+scratch/
