@@ -85,7 +85,9 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:4200")
+        policy.WithOrigins("http://localhost:4200",
+                            "https://p01--test-alquileres--t9d9t99rgq2c.code.run"
+                            )
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
