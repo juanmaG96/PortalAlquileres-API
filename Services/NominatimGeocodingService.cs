@@ -12,6 +12,7 @@ public class NominatimGeocodingService : INominatimGeocodingService
     private readonly IMemoryCache _cache;
     private readonly ILogger<NominatimGeocodingService> _logger;
     private readonly string _defaultCity;
+    private readonly string _defaultProvince;
     private readonly string _defaultCountry;
 
     // Strict Throttling: 1 request per second for Nominatim API policy compliance
@@ -28,6 +29,7 @@ public class NominatimGeocodingService : INominatimGeocodingService
         _cache = cache;
         _logger = logger;
         _defaultCity = configuration["WhiteLabelSettings:InstanceCity"] ?? "Paysandú";
+        _defaultProvince = configuration["WhiteLabelSettings:InstanceProvince"] ?? "Paysandú";
         _defaultCountry = configuration["WhiteLabelSettings:InstanceCountry"] ?? "Uruguay";
 
         string userAgent = configuration["GeocodingSettings:UserAgent"] 
@@ -47,7 +49,7 @@ public class NominatimGeocodingService : INominatimGeocodingService
         }
 
         string targetCity = string.IsNullOrWhiteSpace(city) ? _defaultCity : city;
-        string fullQuery = $"{address}, {targetCity}, {_defaultCountry}".ToLowerInvariant().Trim();
+        string fullQuery = $"{address}, {targetCity}, {_defaultProvince}, {_defaultCountry}".ToLowerInvariant().Trim();
         string cacheKey = $"geocode_{fullQuery}";
 
         // 1. Check MemoryCache first
