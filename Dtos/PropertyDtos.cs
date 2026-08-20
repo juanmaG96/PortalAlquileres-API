@@ -41,6 +41,21 @@ public record PropertyDetailDto(
     List<string> ImageUrls
 );
 
+public record PropertyCreateDto(
+    string Title,
+    string Description,
+    decimal Price,
+    string Currency,
+    int Rooms,
+    PropertyType PropertyType,
+    OfferType OfferType,
+    string ContactPhone,
+    string City,
+    string Address,
+    List<string> ImageUrls,
+    bool IsPremium
+);
+
 public class PropertySearchFilterDto
 {
     public string? City { get; set; }

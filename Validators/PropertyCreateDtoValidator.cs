@@ -6,7 +6,7 @@ namespace Marketplace.API.Validators;
 /// <summary>
 /// Validador para la creación de propiedades basado en las reglas de negocio Fail-Fast.
 /// </summary>
-public class PropertyCreateDtoValidator : AbstractValidator<PropertyDetailDto>
+public class PropertyCreateDtoValidator : AbstractValidator<PropertyCreateDto>
 {
     public PropertyCreateDtoValidator()
     {

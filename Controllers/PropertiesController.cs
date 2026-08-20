@@ -50,7 +50,7 @@ public class PropertiesController : ControllerBase
     [HttpPost]
     [Authorize]
     public async Task<ActionResult<PropertyDetailDto>> CreateProperty(
-        [FromBody] PropertyDetailDto dto,
+        [FromBody] PropertyCreateDto dto,
         CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);

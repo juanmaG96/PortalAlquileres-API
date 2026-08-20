@@ -230,10 +230,10 @@ public class PropertyService : IPropertyService
         );
     }
 
-    public async Task<PropertyDetailDto> CreatePropertyAsync(PropertyDetailDto dto, CancellationToken cancellationToken = default)
+    public async Task<PropertyDetailDto> CreatePropertyAsync(PropertyCreateDto dto, CancellationToken cancellationToken = default)
     {
-        double? lat = dto.Latitude;
-        double? lon = dto.Longitude;
+        double? lat = null;
+        double? lon = null;
 
         // Auto geocode address via backend Nominatim service if Lat/Lon are missing
         if ((!lat.HasValue || !lon.HasValue) && !string.IsNullOrWhiteSpace(dto.Address))
