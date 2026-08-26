@@ -66,7 +66,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // 5. HttpClient for Nominatim Geocoding
 builder.Services.AddHttpClient<INominatimGeocodingService, NominatimGeocodingService>();
 
-// 6. Application Services & Cloudinary Options Pattern
+// 6. Application Services, AutoMapper & Cloudinary Options Pattern
+builder.Services.AddAutoMapper(cfg => cfg.AddProfile<MappingProfile>());
 builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
 builder.Services.AddScoped<IImageService, CloudinaryImageService>();
 builder.Services.AddScoped<IPropertyService, PropertyService>();

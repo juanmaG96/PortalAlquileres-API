@@ -1,3 +1,5 @@
+using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using Marketplace.API.Data;
 using Marketplace.API.Data.Entities;
 using Marketplace.API.Dtos;
@@ -9,6 +11,7 @@ namespace Marketplace.API.Services;
 public class PropertyService : IPropertyService
 {
     private readonly ApplicationDbContext _dbContext;
+    private readonly IMapper _mapper;
     private readonly IMemoryCache _cache;
     private readonly INominatimGeocodingService _geocodingService;
     private readonly ILogger<PropertyService> _logger;
@@ -18,12 +21,14 @@ public class PropertyService : IPropertyService
 
     public PropertyService(
         ApplicationDbContext dbContext,
+        IMapper mapper,
         IMemoryCache cache,
         INominatimGeocodingService geocodingService,
         IConfiguration configuration,
         ILogger<PropertyService> logger)
     {
         _dbContext = dbContext;
+        _mapper = mapper;
         _cache = cache;
         _geocodingService = geocodingService;
         _logger = logger;
@@ -111,25 +116,7 @@ public class PropertyService : IPropertyService
             .ThenByDescending(p => p.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            // Explicit projection to PropertySummaryDto avoiding overfetching!
-            .Select(p => new PropertySummaryDto(
-                p.Id,
-                p.Title,
-                p.Price,
-                p.Currency,
-                p.ImageUrls.FirstOrDefault(),
-                p.Rooms,
-                p.PropertyType,
-                p.OfferType,
-                p.Status,
-                p.IsPremium,
-                p.City,
-                p.Address,
-                p.Latitude,
-                p.Longitude,
-                p.CreatedAt,
-                p.ContactPhone
-            ))
+            .ProjectTo<PropertySummaryDto>(_mapper.ConfigurationProvider)
             .ToListAsync(cancellationToken);
 
         var result = new PagedResultDto<PropertySummaryDto>(items, totalCount, page, pageSize);
@@ -151,9 +138,6 @@ public class PropertyService : IPropertyService
     public async Task<PagedResultDto<PropertySummaryDto>> GetAdminPropertiesAsync(PropertySearchFilterDto filter, CancellationToken cancellationToken = default)
     {
         IQueryable<Property> query = _dbContext.Properties.AsNoTracking().IgnoreQueryFilters(); // <-- Ignoramos filtros globales (Soft Delete)
-
-        // Solo ocultamos los eliminados (Soft Delete). ¡Traemos Activos e Inactivos!
-        //query = query.Where(p => !p.IsDeleted);
 
         if (filter.ShowDeleted)
         {
@@ -189,11 +173,7 @@ public class PropertyService : IPropertyService
             .ThenByDescending(p => p.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(p => new PropertySummaryDto(
-                p.Id, p.Title, p.Price, p.Currency, p.ImageUrls.FirstOrDefault(),
-                p.Rooms, p.PropertyType, p.OfferType, p.Status, p.IsPremium,
-                p.City, p.Address, p.Latitude, p.Longitude, p.CreatedAt, p.ContactPhone
-            ))
+            .ProjectTo<PropertySummaryDto>(_mapper.ConfigurationProvider)
             .ToListAsync(cancellationToken);
 
         // Retornamos directo a PostgreSQL, CERO caché.
@@ -209,25 +189,7 @@ public class PropertyService : IPropertyService
 
         if (property == null) return null;
 
-        return new PropertyDetailDto(
-            property.Id,
-            property.Title,
-            property.Description,
-            property.Price,
-            property.Currency,
-            property.Rooms,
-            property.PropertyType,
-            property.OfferType,
-            property.Status,
-            property.IsPremium,
-            property.CreatedAt,
-            property.ContactPhone,
-            property.City,
-            property.Address,
-            property.Latitude,
-            property.Longitude,
-            property.ImageUrls
-        );
+        return _mapper.Map<PropertyDetailDto>(property);
     }
 
     public async Task<PropertyDetailDto> CreatePropertyAsync(PropertyCreateDto dto, CancellationToken cancellationToken = default)
@@ -246,49 +208,21 @@ public class PropertyService : IPropertyService
             }
         }
 
-        var property = new Property
-        {
-            Id = Guid.NewGuid(),
-            Title = dto.Title,
-            Description = dto.Description,
-            Price = dto.Price,
-            Currency = string.IsNullOrWhiteSpace(dto.Currency) ? "UYU" : dto.Currency,
-            Rooms = dto.Rooms,
-            PropertyType = dto.PropertyType,
-            OfferType = dto.OfferType,
-            Status = PropertyStatus.Active,
-            IsPremium = dto.IsPremium,
-            CreatedAt = DateTime.UtcNow,
-            ContactPhone = dto.ContactPhone,
-            City = string.IsNullOrWhiteSpace(dto.City) ? _defaultCity : dto.City,
-            Address = dto.Address,
-            Latitude = lat,
-            Longitude = lon,
-            ImageUrls = dto.ImageUrls ?? new List<string>()
-        };
+        var property = _mapper.Map<Property>(dto);
+        property.Id = Guid.NewGuid();
+        property.Status = PropertyStatus.Active;
+        property.IsDeleted = false;
+        property.CreatedAt = DateTime.UtcNow;
+        property.City = string.IsNullOrWhiteSpace(dto.City) ? _defaultCity : dto.City;
+        property.Currency = string.IsNullOrWhiteSpace(dto.Currency) ? _defaultCurrency : dto.Currency;
+        property.Latitude = lat;
+        property.Longitude = lon;
+        property.ImageUrls = dto.ImageUrls ?? new List<string>();
 
         _dbContext.Properties.Add(property);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return new PropertyDetailDto(
-            property.Id,
-            property.Title,
-            property.Description,
-            property.Price,
-            property.Currency,
-            property.Rooms,
-            property.PropertyType,
-            property.OfferType,
-            property.Status,
-            property.IsPremium,
-            property.CreatedAt,
-            property.ContactPhone,
-            property.City,
-            property.Address,
-            property.Latitude,
-            property.Longitude,
-            property.ImageUrls
-        );
+        return _mapper.Map<PropertyDetailDto>(property);
     }
 
     public async Task<PropertyDetailDto?> UpdatePropertyAsync(Guid id, PropertyDetailDto dto, CancellationToken cancellationToken = default)
@@ -315,43 +249,18 @@ public class PropertyService : IPropertyService
             }
         }
 
-        // Actualizamos los campos
-        property.Title = dto.Title;
-        property.Description = dto.Description;
-        property.Price = dto.Price;
-        property.Currency = string.IsNullOrWhiteSpace(dto.Currency) ? "UYU" : dto.Currency;
-        property.Rooms = dto.Rooms;
-        property.PropertyType = dto.PropertyType;
-        property.OfferType = dto.OfferType;
-        property.IsPremium = dto.IsPremium;
-        property.ContactPhone = dto.ContactPhone;
-        property.City = string.IsNullOrWhiteSpace(dto.City) ? _defaultCity : dto.City;
-        property.Address = dto.Address;
+        // Mapeo automático de propiedades sobre la entidad existente
+        _mapper.Map(dto, property);
+
+        property.City = string.IsNullOrWhiteSpace(property.City) ? _defaultCity : property.City;
+        property.Currency = string.IsNullOrWhiteSpace(property.Currency) ? _defaultCurrency : property.Currency;
         property.Latitude = lat;
         property.Longitude = lon;
         property.ImageUrls = dto.ImageUrls ?? property.ImageUrls;
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return new PropertyDetailDto(
-            property.Id,
-            property.Title,
-            property.Description,
-            property.Price,
-            property.Currency,
-            property.Rooms,
-            property.PropertyType,
-            property.OfferType,
-            property.Status,
-            property.IsPremium,
-            property.CreatedAt,
-            property.ContactPhone,
-            property.City,
-            property.Address,
-            property.Latitude,
-            property.Longitude,
-            property.ImageUrls
-        );
+        return _mapper.Map<PropertyDetailDto>(property);
     }
 
     public async Task<bool> SoftDeletePropertyAsync(Guid id, CancellationToken cancellationToken = default)
