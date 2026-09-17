@@ -101,10 +101,10 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy.WithOrigins("https://portal-alquileres-web.vercel.app",
-                            "http://localhost:4200"
-                            )
+                           "http://localhost:4200")
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
 
