@@ -12,7 +12,13 @@ public class PropertyCreateDtoValidator : AbstractValidator<PropertyCreateDto>
     {
         RuleFor(x => x.Title)
             .NotEmpty().WithMessage("El título es obligatorio.")
-            .Length(10, 150).WithMessage("El título debe tener entre 10 y 150 caracteres.");
+            .Length(10, 150).WithMessage("El título debe tener entre 10 y 150 caracteres.")
+            .Matches(@"^[^<>]*$").WithMessage("El título contiene caracteres no permitidos (ej. < o >).");
+
+        RuleFor(x => x.Description)
+            .NotEmpty().WithMessage("La descripción es obligatoria.")
+            .Length(10, 2000).WithMessage("La descripción debe tener entre 10 y 2000 caracteres.")
+            .Matches(@"^[^<>]*$").WithMessage("La descripción contiene caracteres no permitidos (ej. < o >).");
 
         RuleFor(x => x.Price)
             .NotNull().WithMessage("El precio es obligatorio.")

@@ -35,8 +35,7 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(e => new { e.City, e.Status, e.IsDeleted, e.IsPremium })
                   .HasDatabaseName("IX_Properties_Search_Composite");
 
-            // Soft Delete Query Filter
-            entity.HasQueryFilter(p => !p.IsDeleted && p.Status == PropertyStatus.Active);
+            // Soft Delete Query Filter eliminado a favor de filtrado explícito para evitar IgnoreQueryFilters()
 
             // ImageUrls JSON Conversion with ValueComparer to prevent EF Core warning
             var stringListComparer = new ValueComparer<List<string>>(

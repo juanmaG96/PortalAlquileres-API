@@ -137,7 +137,7 @@ public class PropertyService : IPropertyService
 
     public async Task<PagedResultDto<PropertySummaryDto>> GetAdminPropertiesAsync(PropertySearchFilterDto filter, CancellationToken cancellationToken = default)
     {
-        IQueryable<Property> query = _dbContext.Properties.AsNoTracking().IgnoreQueryFilters(); // <-- Ignoramos filtros globales (Soft Delete)
+        IQueryable<Property> query = _dbContext.Properties.AsNoTracking(); // <-- Ignoramos filtros globales (Soft Delete)
 
         if (filter.ShowDeleted)
         {
@@ -184,7 +184,7 @@ public class PropertyService : IPropertyService
     {
         var property = await _dbContext.Properties
             .AsNoTracking()
-            .IgnoreQueryFilters()
+            
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
         if (property == null) return null;
@@ -228,7 +228,7 @@ public class PropertyService : IPropertyService
     public async Task<PropertyDetailDto?> UpdatePropertyAsync(Guid id, PropertyDetailDto dto, CancellationToken cancellationToken = default)
     {
         var property = await _dbContext.Properties
-            .IgnoreQueryFilters()
+            
             .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted, cancellationToken);
 
         if (property == null) return null;
@@ -266,7 +266,7 @@ public class PropertyService : IPropertyService
     public async Task<bool> SoftDeletePropertyAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var property = await _dbContext.Properties
-        .IgnoreQueryFilters()
+        
         .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
         if (property == null) return false;
 
@@ -281,7 +281,7 @@ public class PropertyService : IPropertyService
     public async Task<bool> ToggleStatusAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var property = await _dbContext.Properties
-            .IgnoreQueryFilters()
+            
             .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted, cancellationToken);
 
         if (property == null) return false;
@@ -299,7 +299,7 @@ public class PropertyService : IPropertyService
     public async Task<bool> RestorePropertyAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var property = await _dbContext.Properties
-            .IgnoreQueryFilters()
+            
             .FirstOrDefaultAsync(p => p.Id == id && p.IsDeleted, cancellationToken);
 
         if (property == null) return false;

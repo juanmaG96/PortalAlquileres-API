@@ -46,14 +46,21 @@ public class UploadController : ControllerBase
             return BadRequest(new { message = "El archivo excede el tamaño máximo permitido de 10 MB." });
         }
 
-        try
+        using var stream = file.OpenReadStream();
+        var headerBytes = new byte[4];
+        await stream.ReadAsync(headerBytes, 0, 4);
+        string hex = BitConverter.ToString(headerBytes).Replace("-", "");
+
+        bool isWebP = hex.StartsWith("52494646"); // RIFF
+        bool isJpeg = hex.StartsWith("FFD8FF");
+        bool isPng = hex.StartsWith("89504E47");
+
+        if (!isWebP && !isJpeg && !isPng)
         {
-            var imageUrl = await _imageService.UploadImageAsync(file);
-            return Ok(new { url = imageUrl });
+            return BadRequest(new { message = "El contenido del archivo no es una imagen válida." });
         }
-        catch (Exception ex)
-        {
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = ex.Message });
-        }
+
+        var imageUrl = await _imageService.UploadImageAsync(file);
+        return Ok(new { url = imageUrl });
     }
 }

@@ -115,7 +115,7 @@ public class AuthService : IAuthService
 
     private string GenerateJwtToken(AdminUser user)
     {
-        var secretKey = _config["JwtSettings:SecretKey"] ?? "SUPER_SECRET_WHITE_LABEL_KEY_ALQUILERES_2026!";
+        var secretKey = _config["JwtSettings:SecretKey"] ?? throw new InvalidOperationException("La clave secreta de JWT no está configurada.");
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 

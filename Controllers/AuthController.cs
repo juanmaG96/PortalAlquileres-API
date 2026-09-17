@@ -1,6 +1,7 @@
 using Marketplace.API.Data.Dtos;
 using Marketplace.API.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Marketplace.API.Controllers;
 
@@ -18,6 +19,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
+    [EnableRateLimiting("AuthLimiter")]
     public async Task<ActionResult<AuthResponseDto>> Login(
         [FromBody] LoginRequestDto request, 
         CancellationToken cancellationToken)

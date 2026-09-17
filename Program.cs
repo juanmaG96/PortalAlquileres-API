@@ -54,6 +54,20 @@ builder.Services.AddRateLimiter(options =>
                 Window = TimeSpan.FromMinutes(1)
             });
     });
+
+    options.AddPolicy("AuthLimiter", httpContext =>
+    {
+        string clientIp = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: clientIp,
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 5,
+                QueueLimit = 2,
+                Window = TimeSpan.FromMinutes(1)
+            });
+    });
 });
 
 // 4. Database Context (PostgreSQL EF Core)
@@ -105,7 +119,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["JwtSettings:Issuer"] ?? "MarketplaceAPI",
             ValidAudience = builder.Configuration["JwtSettings:Audience"] ?? "MarketplaceFrontend",
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SecretKey"] ?? "SUPER_SECRET_WHITE_LABEL_KEY_ALQUILERES_2026!"))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SecretKey"] ?? throw new InvalidOperationException("La clave secreta de JWT no está configurada.")))
         };
     });
 
@@ -113,6 +127,16 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
 var app = builder.Build();
+
+app.UseExceptionHandler(appError =>
+{
+    appError.Run(async context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(new { message = "Ocurrió un error interno del servidor." });
+    });
+});
 
 // Execute Data Seeder for base Admin user
 await DatabaseSeeder.SeedAsync(app.Services, builder.Configuration);
