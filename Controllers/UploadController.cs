@@ -2,6 +2,9 @@ using Marketplace.API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Text;
+using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace Marketplace.API.Controllers;
 
@@ -22,10 +25,15 @@ public class UploadController : ControllerBase
     /// Endpoint protegido que requiere cabecera 'Authorization: Bearer <token>'.
     /// </summary>
     /// <param name="file">Imagen enviada como multipart/form-data con la clave 'file'.</param>
+    /// <param name="city">Nombre de la ciudad.</param>
+    /// <param name="propertyId">Id de la propiedad o temporal.</param>
     /// <returns>JSON con la propiedad 'url'.</returns>
     [HttpPost]
     [Consumes("multipart/form-data")]
-    public async Task<IActionResult> Upload(IFormFile file)
+    public async Task<IActionResult> Upload(
+        [FromForm] IFormFile file, 
+        [FromForm] string? city, 
+        [FromForm] string? propertyId)
     {
         if (file == null || file.Length == 0)
         {
@@ -60,7 +68,32 @@ public class UploadController : ControllerBase
             return BadRequest(new { message = "El contenido del archivo no es una imagen válida." });
         }
 
-        var imageUrl = await _imageService.UploadImageAsync(file);
+        // Valida city y propertyId
+        var safeCity = SanitizeCityName(string.IsNullOrWhiteSpace(city) ? "UnknownCity" : city);
+        var safePropertyId = string.IsNullOrWhiteSpace(propertyId) ? "Unassigned" : propertyId;
+
+        var imageUrl = await _imageService.UploadImageAsync(file, safeCity, safePropertyId);
         return Ok(new { url = imageUrl });
+    }
+
+    private string SanitizeCityName(string city)
+    {
+        var normalizedString = city.Normalize(NormalizationForm.FormD);
+        var stringBuilder = new StringBuilder(capacity: normalizedString.Length);
+
+        foreach (var c in normalizedString)
+        {
+            var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
+            if (unicodeCategory != UnicodeCategory.NonSpacingMark)
+            {
+                stringBuilder.Append(c);
+            }
+        }
+
+        var cleanString = stringBuilder.ToString().Normalize(NormalizationForm.FormC);
+        cleanString = cleanString.Replace(" ", "_");
+        cleanString = Regex.Replace(cleanString, @"[^a-zA-Z0-9_]", "");
+        
+        return string.IsNullOrWhiteSpace(cleanString) ? "UnknownCity" : cleanString;
     }
 }

@@ -12,6 +12,8 @@ public interface IImageService
     /// Sube una imagen recibida como IFormFile a Cloudinary y retorna su URL segura HTTPS.
     /// </summary>
     /// <param name="file">Archivo de imagen enviado en el request multipart/form-data.</param>
+    /// <param name="city">Nombre de la ciudad.</param>
+    /// <param name="propertyId">Id de la propiedad.</param>
     /// <returns>URL segura (SecureUrl) generada por Cloudinary.</returns>
-    Task<string> UploadImageAsync(IFormFile file);
+    Task<string> UploadImageAsync(IFormFile file, string city, string propertyId);
 }

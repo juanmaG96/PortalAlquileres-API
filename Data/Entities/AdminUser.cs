@@ -18,4 +18,7 @@ public class AdminUser
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     
     public DateTime? LastLoginAt { get; set; }
+
+    [MaxLength(100)]
+    public string? City { get; set; }
 }

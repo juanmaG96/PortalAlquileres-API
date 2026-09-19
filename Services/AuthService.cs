@@ -74,22 +74,10 @@ public class AuthService : IAuthService
 
         _logger.LogInformation("Token de recuperación generado exitosamente para el usuario: {Username}", user.Username);
 
-        /* 
-         * =========================================================================
-         * TODO: PASOS FUTUROS DE INTEGRACIÓN DE EMAIL (Resend / SendGrid / SMTP)
-         * =========================================================================
-         * 1. Almacenar el resetToken en la DB (o Redis) asociado al AdminUser con expiración (ej: 15-30 minutos).
-         * 2. Inyectar IEmailService (ej: ResendEmailService u SmtpEmailService).
-         * 3. Construir la plantilla HTML del correo con el enlace:
-         *    https://midominio.com/admin/reset-password?token={resetToken}&user={user.Username}
-         * 4. Enviar el correo electrónico mediante `await _emailService.SendResetPasswordEmailAsync(user.Email, resetUrl);`
-         * =========================================================================
-         */
-
         return await Task.FromResult(resetToken);
     }
 
-    public async Task<bool> SeedAdminUserAsync(string username, string password, CancellationToken cancellationToken = default)
+    public async Task<bool> SeedAdminUserAsync(string username, string password, string city, CancellationToken cancellationToken = default)
     {
         var exists = await _context.AdminUsers.AnyAsync(u => u.Username == username, cancellationToken);
         if (exists)
@@ -103,12 +91,13 @@ public class AuthService : IAuthService
             Username = username,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
             IsActive = true,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            City = city
         };
 
         _context.AdminUsers.Add(admin);
         await _context.SaveChangesAsync(cancellationToken);
-        _logger.LogInformation("Usuario administrador base '{Username}' insertado en el Data Seed.", username);
+        _logger.LogInformation("Usuario administrador base '{Username}' para la ciudad '{City}' insertado en el Data Seed.", username, city);
 
         return true;
     }
@@ -119,13 +108,18 @@ public class AuthService : IAuthService
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Username),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Role, "Admin")
         };
+
+        if (!string.IsNullOrWhiteSpace(user.City))
+        {
+            claims.Add(new Claim("City", user.City));
+        }
 
         var expirationMinutes = double.TryParse(_config["JwtSettings:ExpirationInMinutes"], out var exp) ? exp : 60;
 

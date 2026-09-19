@@ -10,25 +10,35 @@ public static class DatabaseSeeder
         var authService = scope.ServiceProvider.GetRequiredService<IAuthService>();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<ApplicationDbContext>>();
 
-        // Intentar obtener credenciales desde IOptions / Variables de Entorno
-        string defaultUsername = configuration["AdminSeedSettings:Username"] ?? "admin";
-        string defaultPassword = configuration["AdminSeedSettings:Password"] ?? "Admin123!";
+        // Paysandu Admin
+        string paysanduUser = configuration["AdminSeedSettings:PaysanduAdmin:Username"] ?? "admin@paysandu.com";
+        string paysanduPass = configuration["AdminSeedSettings:PaysanduAdmin:Password"] ?? "Admin123!";
+        string paysanduCity = "Paysandú";
+
+        // CDelu Admin
+        string cdeluUser = configuration["AdminSeedSettings:CDeluAdmin:Username"] ?? "admin@cdelu.com";
+        string cdeluPass = configuration["AdminSeedSettings:CDeluAdmin:Password"] ?? "Admin123!";
+        string cdeluCity = "Concepción del Uruguay";
 
         try
         {
-            bool seeded = await authService.SeedAdminUserAsync(defaultUsername, defaultPassword);
-            if (seeded)
+            // Seed Paysandu Admin
+            bool seededPaysandu = await authService.SeedAdminUserAsync(paysanduUser, paysanduPass, paysanduCity);
+            if (seededPaysandu)
             {
-                logger.LogInformation("Data Seed: Usuario Administrador Base '{Username}' creado exitosamente.", defaultUsername);
+                logger.LogInformation("Data Seed: Usuario Administrador '{Username}' creado exitosamente para {City}.", paysanduUser, paysanduCity);
             }
-            else
+
+            // Seed CDelu Admin
+            bool seededCDelu = await authService.SeedAdminUserAsync(cdeluUser, cdeluPass, cdeluCity);
+            if (seededCDelu)
             {
-                logger.LogInformation("Data Seed: El usuario administrador base '{Username}' ya existe en la base de datos.", defaultUsername);
+                logger.LogInformation("Data Seed: Usuario Administrador '{Username}' creado exitosamente para {City}.", cdeluUser, cdeluCity);
             }
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error durante la ejecución del Data Seed de Administrador.");
+            logger.LogError(ex, "Error durante la ejecución del Data Seed de Administradores.");
         }
     }
 }

@@ -33,7 +33,7 @@ public class CloudinaryImageService : IImageService
         _cloudinary.Api.Secure = true;
     }
 
-    public async Task<string> UploadImageAsync(IFormFile file)
+    public async Task<string> UploadImageAsync(IFormFile file, string city, string propertyId)
     {
         if (file == null || file.Length == 0)
         {
@@ -42,10 +42,12 @@ public class CloudinaryImageService : IImageService
 
         using var stream = file.OpenReadStream();
 
+        var folderName = $"RentalSync/{city}/{propertyId}";
+
         var uploadParams = new ImageUploadParams
         {
             File = new FileDescription(file.FileName, stream),
-            Folder = "marketplace_properties",
+            Folder = folderName,
             Transformation = new Transformation().Quality("auto").FetchFormat("auto")
         };
 

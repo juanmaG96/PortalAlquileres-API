@@ -15,9 +15,6 @@ public class PropertyService : IPropertyService
     private readonly IMemoryCache _cache;
     private readonly INominatimGeocodingService _geocodingService;
     private readonly ILogger<PropertyService> _logger;
-    private readonly string _defaultCity;
-    private readonly decimal _exchangeRate;
-    private readonly string _defaultCurrency;
 
     public PropertyService(
         ApplicationDbContext dbContext,
@@ -32,9 +29,6 @@ public class PropertyService : IPropertyService
         _cache = cache;
         _geocodingService = geocodingService;
         _logger = logger;
-        _defaultCity = configuration["WhiteLabelSettings:InstanceCity"] ?? "Paysandú";
-        _exchangeRate = decimal.TryParse(configuration["WhiteLabelSettings:ExchangeRate"], out var rate) ? rate : 1m;
-        _defaultCurrency = configuration["WhiteLabelSettings:DefaultCurrency"] ?? "UYU";
     }
 
     public async Task<PagedResultDto<PropertySummaryDto>> GetPropertiesAsync(PropertySearchFilterDto filter, CancellationToken cancellationToken = default)
@@ -58,9 +52,10 @@ public class PropertyService : IPropertyService
             query = query.Where(p => p.Status == PropertyStatus.Active);
         }
 
-        // White-label default city filter if not explicitly overridden
-        string searchCity = string.IsNullOrWhiteSpace(filter.City) ? _defaultCity : filter.City;
-        query = query.Where(p => p.City.ToLower() == searchCity.ToLower());
+        if (!string.IsNullOrWhiteSpace(filter.City))
+        {
+            query = query.Where(p => p.City.ToLower() == filter.City.ToLower());
+        }
 
         if (filter.PropertyType.HasValue)
         {
@@ -85,13 +80,7 @@ public class PropertyService : IPropertyService
 
         if (filter.MaxPrice.HasValue)
         {
-            query = query.Where(p => 
-                // Si la propiedad está en la moneda local, compara directo
-                (p.Currency == _defaultCurrency && p.Price <= filter.MaxPrice.Value) ||
-                
-                // Si la propiedad está en USD, multiplica por la tasa de la ciudad antes de comparar
-                (p.Currency == "USD" && (p.Price * _exchangeRate) <= filter.MaxPrice.Value)
-            );
+            query = query.Where(p => p.Price <= filter.MaxPrice.Value);
         }
 
         if (filter.Rooms.HasValue)
@@ -148,9 +137,10 @@ public class PropertyService : IPropertyService
             query = query.Where(p => p.IsDeleted == false);
         }
 
-        // Filtros de búsqueda (igual que en el público)
-        string searchCity = string.IsNullOrWhiteSpace(filter.City) ? _defaultCity : filter.City;
-        query = query.Where(p => p.City.ToLower() == searchCity.ToLower());
+        if (!string.IsNullOrWhiteSpace(filter.City))
+        {
+            query = query.Where(p => p.City.ToLower() == filter.City.ToLower());
+        }
 
         if (filter.PropertyType.HasValue) query = query.Where(p => p.PropertyType == filter.PropertyType.Value);
         if (filter.OfferType.HasValue) query = query.Where(p => p.OfferType == filter.OfferType.Value);
@@ -184,7 +174,6 @@ public class PropertyService : IPropertyService
     {
         var property = await _dbContext.Properties
             .AsNoTracking()
-            
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
         if (property == null) return null;
@@ -213,8 +202,8 @@ public class PropertyService : IPropertyService
         property.Status = PropertyStatus.Active;
         property.IsDeleted = false;
         property.CreatedAt = DateTime.UtcNow;
-        property.City = string.IsNullOrWhiteSpace(dto.City) ? _defaultCity : dto.City;
-        property.Currency = string.IsNullOrWhiteSpace(dto.Currency) ? _defaultCurrency : dto.Currency;
+        property.City = string.IsNullOrWhiteSpace(dto.City) ? "Unknown" : dto.City;
+        property.Currency = string.IsNullOrWhiteSpace(dto.Currency) ? "USD" : dto.Currency;
         property.Latitude = lat;
         property.Longitude = lon;
         property.ImageUrls = dto.ImageUrls ?? new List<string>();
@@ -228,7 +217,6 @@ public class PropertyService : IPropertyService
     public async Task<PropertyDetailDto?> UpdatePropertyAsync(Guid id, PropertyDetailDto dto, CancellationToken cancellationToken = default)
     {
         var property = await _dbContext.Properties
-            
             .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted, cancellationToken);
 
         if (property == null) return null;
@@ -252,8 +240,8 @@ public class PropertyService : IPropertyService
         // Mapeo automático de propiedades sobre la entidad existente
         _mapper.Map(dto, property);
 
-        property.City = string.IsNullOrWhiteSpace(property.City) ? _defaultCity : property.City;
-        property.Currency = string.IsNullOrWhiteSpace(property.Currency) ? _defaultCurrency : property.Currency;
+        property.City = string.IsNullOrWhiteSpace(property.City) ? "Unknown" : property.City;
+        property.Currency = string.IsNullOrWhiteSpace(property.Currency) ? "USD" : property.Currency;
         property.Latitude = lat;
         property.Longitude = lon;
         property.ImageUrls = dto.ImageUrls ?? property.ImageUrls;
@@ -266,7 +254,6 @@ public class PropertyService : IPropertyService
     public async Task<bool> SoftDeletePropertyAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var property = await _dbContext.Properties
-        
         .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
         if (property == null) return false;
 
@@ -281,7 +268,6 @@ public class PropertyService : IPropertyService
     public async Task<bool> ToggleStatusAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var property = await _dbContext.Properties
-            
             .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted, cancellationToken);
 
         if (property == null) return false;
@@ -299,7 +285,6 @@ public class PropertyService : IPropertyService
     public async Task<bool> RestorePropertyAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var property = await _dbContext.Properties
-            
             .FirstOrDefaultAsync(p => p.Id == id && p.IsDeleted, cancellationToken);
 
         if (property == null) return false;

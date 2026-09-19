@@ -64,7 +64,7 @@ public class AuthController : ControllerBase
         [FromBody] LoginRequestDto request,
         CancellationToken cancellationToken)
     {
-        bool created = await _authService.SeedAdminUserAsync(request.Username, request.Password, cancellationToken);
+        bool created = await _authService.SeedAdminUserAsync(request.Username, request.Password, "Unassigned", cancellationToken);
         if (!created)
         {
             return BadRequest(new { Message = "El usuario administrador ya existe." });

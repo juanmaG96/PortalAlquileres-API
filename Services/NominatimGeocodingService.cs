@@ -11,9 +11,6 @@ public class NominatimGeocodingService : INominatimGeocodingService
     private readonly HttpClient _httpClient;
     private readonly IMemoryCache _cache;
     private readonly ILogger<NominatimGeocodingService> _logger;
-    private readonly string _defaultCity;
-    private readonly string _defaultProvince;
-    private readonly string _defaultCountry;
 
     // Strict Throttling: 1 request per second for Nominatim API policy compliance
     private static readonly SemaphoreSlim Throttler = new(1, 1);
@@ -28,12 +25,9 @@ public class NominatimGeocodingService : INominatimGeocodingService
         _httpClient = httpClient;
         _cache = cache;
         _logger = logger;
-        _defaultCity = configuration["WhiteLabelSettings:InstanceCity"] ?? "Paysandú";
-        _defaultProvince = configuration["WhiteLabelSettings:InstanceProvince"] ?? "Paysandú";
-        _defaultCountry = configuration["WhiteLabelSettings:InstanceCountry"] ?? "Uruguay";
 
         string userAgent = configuration["GeocodingSettings:UserAgent"] 
-            ?? "PaysanduRealEstateMarketplace/1.0 (contact@alquilerespaysandu.com)";
+            ?? "Marketplace/1.0";
 
         if (!_httpClient.DefaultRequestHeaders.Contains("User-Agent"))
         {
@@ -48,8 +42,8 @@ public class NominatimGeocodingService : INominatimGeocodingService
             return new GeocodeResultDto(string.Empty, 0, 0, false, "La dirección no puede estar vacía.");
         }
 
-        string targetCity = string.IsNullOrWhiteSpace(city) ? _defaultCity : city;
-        string fullQuery = $"{address}, {targetCity}, {_defaultProvince}, {_defaultCountry}".ToLowerInvariant().Trim();
+        string targetCity = string.IsNullOrWhiteSpace(city) ? "" : $", {city}";
+        string fullQuery = $"{address}{targetCity}".ToLowerInvariant().Trim();
         string cacheKey = $"geocode_{fullQuery}";
 
         // 1. Check MemoryCache first
@@ -101,7 +95,7 @@ public class NominatimGeocodingService : INominatimGeocodingService
                 double.TryParse(first.Lon, CultureInfo.InvariantCulture, out double lon))
             {
                 var successResult = new GeocodeResultDto(
-                    first.DisplayName ?? $"{address}, {targetCity}",
+                    first.DisplayName ?? $"{address}{targetCity}",
                     lat,
                     lon,
                     true,
